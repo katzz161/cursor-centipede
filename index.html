@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cursor Centipede</title>
+
+<style>
+    body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+    }
+
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let width, height;
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+// Mouse position
+let mouse = {
+    x: width / 2,
+    y: height / 2
+};
+
+window.addEventListener("pointermove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
+
+// Create the centipede's body
+const segments = [];
+const numberOfSegments = 38;
+const spacing = 9;
+
+for (let i = 0; i < numberOfSegments; i++) {
+    segments.push({
+        x: width / 2 - i * spacing,
+        y: height / 2
+    });
+}
+
+// Draw the centipede
+function drawCentipede() {
+
+    // Move the head towards the cursor
+    segments[0].x += (mouse.x - segments[0].x) * 0.12;
+    segments[0].y += (mouse.y - segments[0].y) * 0.12;
+
+    // Make the rest of the body follow
+    for (let i = 1; i < segments.length; i++) {
+        const previous = segments[i - 1];
+        const current = segments[i];
+
+        const dx = previous.x - current.x;
+        const dy = previous.y - current.y;
+
+        const angle = Math.atan2(dy, dx);
+
+        current.x = previous.x - Math.cos(angle) * spacing;
+        current.y = previous.y - Math.sin(angle) * spacing;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.strokeStyle = "#bcbcbc";
+    ctx.lineWidth = 0.8;
+
+    // Draw the body
+    for (let i = 0; i < segments.length - 1; i++) {
+        const p = segments[i];
+        const next = segments[i + 1];
+
+        const angle = Math.atan2(
+            p.y - next.y,
+            p.x - next.x
+        );
+
+        // Body connection
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(next.x, next.y);
+        ctx.stroke();
+
+        // Rib-like body segments
+        const ribLength = 5 + (i / segments.length) * 3;
+
+        ctx.beginPath();
+        ctx.moveTo(
+            p.x + Math.cos(angle + Math.PI / 2) * ribLength,
+            p.y + Math.sin(angle + Math.PI / 2) * ribLength
+        );
+        ctx.lineTo(
+            p.x + Math.cos(angle - Math.PI / 2) * ribLength,
+            p.y + Math.sin(angle - Math.PI / 2) * ribLength
+        );
+        ctx.stroke();
+
+        // Little legs
+        if (i > 0 && i < segments.length - 2) {
+            for (let side of [-1, 1]) {
+
+                const legAngle = angle +
+                    side * 0.9 + Math.PI / 2;
+
+                const legLength = 15;
+
+                const kneeX = p.x +
+                    Math.cos(legAngle) * legLength * 0.6;
+
+                const kneeY = p.y +
+                    Math.sin(legAngle) * legLength * 0.6;
+
+                const footX = kneeX +
+                    Math.cos(legAngle + side * 0.6) * 9;
+
+                const footY = kneeY +
+                    Math.sin(legAngle + side * 0.6) * 9;
+
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(kneeX, kneeY);
+                ctx.lineTo(footX, footY);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // Head
+    const head = segments[0];
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Antennae
+    const direction = Math.atan2(
+        head.y - segments[1].y,
+        head.x - segments[1].x
+    );
+
+    for (let side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(head.x, head.y);
+        ctx.lineTo(
+            head.x + Math.cos(direction + side * 0.65) * 13,
+            head.y + Math.sin(direction + side * 0.65) * 13
+        );
+        ctx.stroke();
+    }
+
+    requestAnimationFrame(drawCentipede);
+}
+
+drawCentipede();
+
+</script>
+
+</body>
+</html>
